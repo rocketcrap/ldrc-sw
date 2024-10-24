@@ -98,8 +98,8 @@ bool convertToJson(const Packet::State& src, JsonVariant dst) {
         case Packet::INIT:
             str = "INIT";
             break;
-        case Packet::PAD:
-            str = "PAD";
+        case Packet::ARMED:
+            str = "ARMED";
             break;
         case Packet::BOOST:
             str = "BOOST";
@@ -110,23 +110,11 @@ bool convertToJson(const Packet::State& src, JsonVariant dst) {
         case Packet::APOGEE:
             str = "APOGEE";
             break;
-        case Packet::DROGUE_OPEN:
-            str = "DROGUE_OPEN";
+        case Packet::UNDER_CHUTE:
+            str = "UNDER_CHUTE";
             break;
-        case Packet::DROGUE_DEPLOYED:
-            str = "DROGUE_DEPLOYED";
-            break;
-        case Packet::DROGUE_FAIL:
-            str = "DROGUE_FAIL";
-            break;
-        case Packet::MAIN_OPEN:
-            str = "MAIN_OPEN";
-            break;
-        case Packet::MAIN_DEPLOYED:
-            str = "MAIN_DEPLOYED";
-            break;
-        case Packet::MAIN_FAIL:
-            str = "MAIN_FAIL";
+        case Packet::LAWN_DART:
+            str = "LAWN_DART";
             break;
         case Packet::TOUCHDOWN:
             str = "TOUCHDOWN";
@@ -180,7 +168,7 @@ bool convertToJson(const SixFloats& src, JsonVariant dst) {
     return true;
 }
 
-bool convertToJson(const BarometerData& src, JsonVariant dst) {
+bool convertToJson(const BarometerStatus& src, JsonVariant dst) {
     dst["altitude"] = src.altitude;
     dst["temp"] = src.temperature;
     return true;

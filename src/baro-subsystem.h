@@ -1,8 +1,20 @@
 #pragma once
 
 #include <subsystem.h>
-#include "packet.h"
 #include "MS5611.h"
+#include "packet.h"
+
+struct BarometerData {
+    operator BarometerStatus() const {
+        BarometerStatus status;
+        status.altitude = roundf(altitude);
+        status.temperature = temperature;
+        return status;
+    }
+    float altitude;
+    uint8_t temperature;
+};
+
 
 class BaroSubsystemClass : public TickableSubsystem, public DataThing<BarometerData> {
 public:

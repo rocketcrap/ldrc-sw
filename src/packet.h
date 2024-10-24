@@ -32,46 +32,23 @@ struct __attribute__((packed)) Packet
         GPS_STATUS = (1 << 0),
         IMU_STATUS = (1 << 1),
         FLASH_STATUS = (1 << 2),
-        PYRO_SAFETY = (1 << 3), // deprecated
-        PYRO_CONT1 = (1 << 4), // deprecated
-        PYRO_CONT2 = (1 << 5), // deprecated
         RADIO_STATUS = (1 << 6),
         BATTERY_STATUS = (1 << 7),
-        PHOTO_STATUS = (1 << 8), // deprecated
-        EEPROM_STATUS = (1 << 9), // deprecated
         BAROMETER_STATUS = (1 << 10),
         LOGGER_STATUS = (1 << 11)
-    };
-    enum EventNumber : uint8_t
-    {
-        INVALID_EVENT = 0,
-        RADIO_FAST_MODE_EVENT,
-        RADIO_SLOW_MODE_EVENT,
-        BATTERY_LOW_EVENT,
-        ERROR_EVENT,
-        NONSENSE_EVENT,
-        TOP_OPEN_EVENT,
-        BOTTOM_OPEN_EVENT,
-        PYRO_FIRE_EVENT,
-        PYRO_FIRE_FAIL_EVENT,
-        PYRO_CONT_LOSS_EVENT,
     };
     enum State : uint8_t
     {
         INIT,
-        PAD,
-        CATO,
+        DISARMED,
+        ARMED,
         BOOST,
         COAST,
         APOGEE,
-        DROGUE_OPEN,
-        DROGUE_DEPLOYED,
-        DROGUE_FAIL,
-        MAIN_OPEN,
-        MAIN_DEPLOYED,
-        MAIN_FAIL,
+        UNDER_CHUTE,
         LAWN_DART,
         TOUCHDOWN,
+        LOST,
         POWER_FAIL,
         UNKNOWN
     };
@@ -104,12 +81,11 @@ struct __attribute__((packed)) GPSFix
 };
 bool convertToJson(const GPSFix& src, JsonVariant dst);
 
-struct __attribute__((packed)) BarometerData
-{
+struct __attribute__((packed)) BarometerStatus {
     uint16_t altitude;
     uint8_t temperature;
 };
-bool convertToJson(const BarometerData& src, JsonVariant dst);
+bool convertToJson(const BarometerStatus& src, JsonVariant dst);
 
 struct __attribute__((packed)) SixFloats
 {
@@ -156,7 +132,7 @@ struct __attribute__((packed)) StatusPacket
     GPSFix gpsFix;
     MemoryStats memoryStats;
     uint8_t batteryVoltage;
-    BarometerData barometerData;
+    BarometerStatus barometerData;
     SixFloats imuData;
     PyroStatus pyroStatus;
     Estimation estimate;
@@ -171,12 +147,6 @@ struct __attribute__((packed)) DumbPacket
     char message[PACKET_MESSAGE_SIZE];
 };
 
-struct __attribute__((packed)) EventPacket
-{
-    uint32_t timestamp;
-    uint8_t eventNumber;
-    char message[40];
-};
 
 struct __attribute__((packed)) MinimalPacket
 {

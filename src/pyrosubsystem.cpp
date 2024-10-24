@@ -2,6 +2,7 @@
 #include "eventmanager.h"
 #include "statusmanager.h"
 #include "configmanager.h"
+#include "statemanager.h"
 #include "log.h"
 #include "pins.h"
 
@@ -108,14 +109,13 @@ void convertFromJson(JsonVariantConst src, PyroChannelConfig &dst) {
     }
 }
 
-PyroManagerClass::PyroManagerClass() : pyroChannels{&ChannelOne, /* &ChannelTwo, &ChannelThree, */ NULL}, numPyroChannels(0), liftOffDetected(false), apogeeDetected(false), amFlghtComputer(true) {
+PyroManagerClass::PyroManagerClass() : pyroChannels{&ChannelOne, &ChannelTwo, /* &ChannelThree, */ NULL},
+    numPyroChannels(0), liftOffDetected(false), apogeeDetected(false), pyroArmed(false),
+    indicators(numLED, LED_DATA, LED_CLK, DOTSTAR_BGR) {
+    name = "pyroManager";
     static BaseSubsystem* deps[] = {&EventManager, &StatusManager, &ConfigManager, &LogWriter, NULL};
     static SubsystemManagerClass::Spec spec(this, deps);
-
     SubsystemManager.addSubsystem(&spec);
-    name = "pyroManager";
-
-    memset(armFlag, 0, sizeof(armFlag));
 
     // initialize the number of pyrochannels
     for (auto i = 0; i < maxPyroChannels; i++) {
@@ -131,7 +131,7 @@ PyroManagerClass::~PyroManagerClass() {
 
 BaseSubsystem::Status PyroManagerClass::setup() {
     // TODO: consider if pyromanager should care about lowpower
-    auto eventMask = Event::LIFTOFF_EVENT | Event::BURNOUT_EVENT | Event::BURNOUT_EVENT | Event::LANDING_EVENT;
+    auto eventMask = Event::ARM_EVENT | Event::DISARM_EVENT | Event::LIFTOFF_EVENT | Event::BURNOUT_EVENT | Event::BURNOUT_EVENT | Event::LANDING_EVENT;
 
     rwLock.Lock();
 
@@ -139,8 +139,16 @@ BaseSubsystem::Status PyroManagerClass::setup() {
         auto self = static_cast<PyroManagerClass*>(ctx);
         switch (event.eventType)
         {
+            case Event::ARM_EVENT:
+                self->onArmed();
+                break;
+
+            case Event::DISARM_EVENT:
+                self->onDisarmed();
+                break;
+
             case Event::LIFTOFF_EVENT:
-                self->onLiftOff(event);
+                self->onLiftOff();
                 break;
 
             case Event::BURNOUT_EVENT:
@@ -148,11 +156,11 @@ BaseSubsystem::Status PyroManagerClass::setup() {
                 break;
 
             case Event::APOGEE_EVENT:
-                self->onApogee(event);
+                self->onApogee();
                 break;
 
             case Event::LANDING_EVENT:
-                self->onLanding(event);
+                self->onLanding();
                 break;
 
             default:
@@ -164,8 +172,6 @@ BaseSubsystem::Status PyroManagerClass::setup() {
 
     ConfigManager.readData([](const ConfigData &config, void *p) {
         auto self = static_cast<PyroManagerClass*>(p);
-
-        self->amFlghtComputer = (config.mode == ConfigData::FLIGHT_COMPUTER);
 
         self->forEachChanNoLock([](PyroChannel *chan, size_t i, PyroManagerClass *self, void *p) {
             auto config = static_cast<const ConfigData *>(p);
@@ -179,36 +185,47 @@ BaseSubsystem::Status PyroManagerClass::setup() {
     ConfigManager.registerCallback([](const ConfigData &config, void *p) {
         auto self = static_cast<PyroManagerClass*>(p);
 
-        self->rwLock.Lock();
-        self->amFlghtComputer = (config.mode == ConfigData::FLIGHT_COMPUTER);
-        self->rwLock.UnLock();
-        self->disarm(); // changing config disarms system
+        self->onDisarmed(); // changing config disarms system
         self->forEachChanLock([](PyroChannel *chan, size_t i, PyroManagerClass *self, void *p) {
             auto config = static_cast<const ConfigData *>(p);
             self->pyroChannels[i]->config = config->pyroConfigs[i];
         }, const_cast<ConfigData*>(&config));
     }, this);
 
+    indicators.begin();
+    indicators.show();
+
     setStatus(READY);
     return getStatus();
 }
 
 BaseSubsystem::Status PyroManagerClass::tick() {
-    if (flightComputer()) {
-        // check if continuity has changed on channels
-        tickContinuityChanges();
+    // check if continuity has changed on channels
+    tickContinuityChanges();
 
-        // check if a firing delay is set on channels and fire if expired
-        tickFiringDelay();
+    // check if a firing delay is set on channels and fire if expired
+    tickFiringDelay();
 
-        // check if firing channels duration is up
-        tickFiringDuration();
+    // check if firing channels duration is up
+    tickFiringDuration();
 
-        // check if we have reached target altitude
-        tickAltitudeTrigger();
-    }
+    // check if we have reached target altitude
+    tickAltitudeTrigger();
 
     return getStatus();
+}
+
+bool PyroManagerClass::allConfiguredChannelsContinuity() {
+    bool rc = true;
+    forEachChanLock([](PyroManagerClass::PyroChannel *chan, size_t i, PyroManagerClass *self, void *ctx) {
+        auto rc = static_cast<bool*>(ctx);
+        if (chan->config.channelType != PyroChannelConfig::DISABLED_CHANNEL) {
+            if (!chan->checkContinuity()) {
+                *rc = false;
+            }
+        }
+    }, &rc);
+    return rc;
 }
 
 void PyroManagerClass::tickFiringDuration() {
@@ -239,11 +256,7 @@ void PyroManagerClass::tickContinuityChanges() {
 
 void PyroManagerClass::tickAltitudeTrigger() {
     if (armed() && liftedOff() && postApogee()) {
-        float alt;
-        StatusManager.readData([](const StatusPacket &pkt, void *ctx) {
-            auto altitude = static_cast<float*>(ctx);
-            *altitude = pkt.estimate.position.z;
-        }, &alt);
+        float alt = StateManager.getAGL();
         forEachChanLock([](PyroChannel* chan, size_t i, PyroManagerClass *self, void *ctx) {
             auto altitude = *(static_cast<float*>(ctx));
             if (chan->config.channelType == PyroChannelConfig::MAIN_CHANNEL) {
@@ -256,38 +269,30 @@ void PyroManagerClass::tickAltitudeTrigger() {
 }
 
 bool PyroManagerClass::armed() const {
-    bool ret = true;
     rwLock.RLock();
-    for (auto i=0; i < numArmFlags; i++) {
-        ret &= (armFlag[i] == armedFlagValue);
-    }
+    auto ret = pyroArmed;
     rwLock.RUnlock();
     return ret;
 }
 
-void PyroManagerClass::arm() {
+void PyroManagerClass::onArmed() {
     rwLock.Lock();
-    memset(armFlag, armedFlagValue, numArmFlags);
-
-    event.eventType = Event::ARM_EVENT;
-    EventManager.publishEvent(event);
-
+    pyroArmed = true;
+    indicators.clear();
+    indicators.show();
     rwLock.UnLock();
 }
 
-void PyroManagerClass::disarm() {
+void PyroManagerClass::onDisarmed() {
     rwLock.Lock();
 
     forEachChanNoLock([](PyroChannel *chan, size_t i, PyroManagerClass *self, void *p) {
         self->pyroChannels[i]->stopFiring();
     }, NULL);
 
-    memset(armFlag, 0, numArmFlags);
+    pyroArmed = false;
 
     rwLock.UnLock();
-
-    event.eventType = Event::DISARM_EVENT;
-    EventManager.publishEvent(event);
 }
 
 bool PyroManagerClass::liftedOff() const {
@@ -304,14 +309,7 @@ bool PyroManagerClass::postApogee() const {
     return ret;
 }
 
-inline bool PyroManagerClass::flightComputer() const {
-    rwLock.RLock();
-    auto ret = amFlghtComputer;
-    rwLock.RUnlock();
-    return ret;
-}
-
-void PyroManagerClass::onLiftOff(const Event &event) {
+void PyroManagerClass::onLiftOff() {
     rwLock.Lock();
     liftOffDetected = true;
     rwLock.UnLock();
@@ -321,7 +319,6 @@ void PyroManagerClass::onBurnout(const Event &event) {
     if (liftedOff() == false || armed() == false) {
         return;
     }
-    auto num = event.args.intArgs.eventArg1;
     forEachChanLock([](PyroChannel* chan, size_t i, PyroManagerClass *self, void *ctx) {
         auto num = *(static_cast<int32_t*>(ctx));
         switch (chan->config.channelType) {
@@ -333,7 +330,15 @@ void PyroManagerClass::onBurnout(const Event &event) {
 
             case PyroChannelConfig::AIRSTART_CHANNEL:
                 if (chan->config.burnoutNumber != num) {
-                    return; // not the right burnout
+                    Log.noticeln("not the right burnout");
+                    return;
+                }
+                if (StateManager.getAGL() < chan->config.airStartLockoutAltitude) {
+                    Log.noticeln("below alt threshold");
+                    return;
+                }
+                if (StateManager.getVertVel() < chan->config.airStartLockoutVelocity) {
+                    return;
                 }
                 // FIXME: this should probably use an estimate manager, which probably
                 // estimates in doubles, as opposed to the packet, which is floats
@@ -341,20 +346,7 @@ void PyroManagerClass::onBurnout(const Event &event) {
                 StatusManager.readData([](const StatusPacket &pkt, void *p) {
                     auto chan = static_cast<PyroChannel*>(p);
 
-                    // option 1: rely on just barometer data, which is unfiltered
-                    // option 2: rely on fused altitude data, which in theory accounts for MSL/AGL
-                    //  given that we don't have a filtered baromter data, we have to rely on fused data
-
                     const SixFloats& position = pkt.estimate.position;
-                    const SixFloats& velocity = pkt.estimate.velocity;
-                    if (position.z <= chan->config.airStartLockoutAltitude) {
-                        return; // not over lockout alt
-                    }
-                    const auto airspeed = sqrt(pow(velocity.x, 2) + pow(velocity.y, 2) + pow(velocity.z, 2));
-                    if (airspeed <= chan->config.airStartLockoutVelocity) {
-                        return; // not over lockout velocity
-                    }
-
                     const auto lockoutAngle = chan->config.airStartLockoutAngle;
                     if (abs(position.pitch) >= lockoutAngle || abs(position.yaw) >= lockoutAngle) {
                         return; // outside of lockout angle
@@ -371,7 +363,7 @@ void PyroManagerClass::onBurnout(const Event &event) {
     }, (void*)&event.args.intArgs.eventArg1);
 }
 
-void PyroManagerClass::onApogee(const Event &event) {
+void PyroManagerClass::onApogee() {
     if (liftedOff() == false || armed() == false) {
         return;
     }
@@ -385,8 +377,8 @@ void PyroManagerClass::onApogee(const Event &event) {
     rwLock.UnLock();
 }
 
-void PyroManagerClass::onLanding(const Event &event) {
-    disarm();
+void PyroManagerClass::onLanding() {
+    onDisarmed();
 }
 
 PyroChannelConfig::PyroChannelConfig() : channelType(PyroChannelConfig::DISABLED_CHANNEL), delaySeconds(0), mainAlt(0), burnoutNumber(0), airStartLockoutAltitude(0), airStartLockoutAngle(0), airStartLockoutVelocity(0) {
@@ -439,11 +431,15 @@ inline bool PyroManagerClass::PyroChannel::checkContinuity() {
                 stopFiring();
             }
             pyroStatus.clearContinuity(chanNum);
+            PyroManager.indicators.setPixelColor(chanNum, 0);
+            PyroManager.indicators.show();
             PyroManager.event.eventType = Event::CONTINUITY_LOSS_EVENT;
             PyroManager.event.args.intArgs.eventArg1 = chanNum;
             EventManager.publishEvent(PyroManager.event);
         } else { // continuity established
             pyroStatus.setContinuity(chanNum);
+            PyroManager.indicators.setPixelColor(chanNum, 128, 0, 0);
+            PyroManager.indicators.show();
         }
         StatusManager.setPyroStatus(pyroStatus);
     }
@@ -455,7 +451,7 @@ void PyroManagerClass::testFire(uint8_t chanNum) {
     if (chanNum > numPyroChannels) {
         return;
     }
-    if (armed() != true) {
+    if (armed() == true) {
         return;
     }
     rwLock.Lock();

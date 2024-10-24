@@ -86,7 +86,7 @@ void StatusManagerClass::setBatteryVoltage(const uint8_t voltage) {
     rwLock.UnLock();
 }
 
-void StatusManagerClass::setBarometerData(const BarometerData &barometerData) {
+void StatusManagerClass::setBarometerData(const BarometerStatus &barometerData) {
     rwLock.Lock();
     data.barometerData = barometerData;
     updateTimestamp();

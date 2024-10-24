@@ -37,7 +37,7 @@ out:
 }
 
 BaseSubsystem::Status BaroSubsystemClass::tick() {
-    static constexpr double seaLevelhPa = 101325;
+    static constexpr float seaLevelhPa = 101325;
     float p; // in mBar/hPa
 
     rwLock.Lock();
@@ -45,7 +45,7 @@ BaseSubsystem::Status BaroSubsystemClass::tick() {
         setStatus(BaseSubsystem::FAULT);
         goto out;
     }
-    // TODO: see if we fixe it
+    // FIXME: fixit
     // WTF gps: 75.478
     // baro: 25893
     // ooff by a factor of 343
@@ -55,7 +55,7 @@ BaseSubsystem::Status BaroSubsystemClass::tick() {
     // formula courtesy of https://github.com/adafruit/Adafruit_DPS310/blob/master/Adafruit_DPS310.cpp#L271
     //data.altitude = 44330 * (1.0 - pow((p / 100) / seaLevelhPa, 0.1903));
     // from https://github.com/jarzebski/Arduino-MS5611/blob/dev/src/MS5611.cpp#L200
-    data.altitude = (44330.0f * (1.0f - pow(p / seaLevelhPa, 0.1902949f)));
+    data.altitude = (44330.0f * (1.0f - powf(p / seaLevelhPa, 0.1902949f)));
 
 out:
     rwLock.UnLock();

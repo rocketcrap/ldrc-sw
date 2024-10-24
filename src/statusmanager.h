@@ -27,7 +27,7 @@ public:
     void setGPSFix(const GPSFix &fix);
     void setMemoryStats(const MemoryStats &stats);
     void setBatteryVoltage(const uint8_t voltage);
-    void setBarometerData(const BarometerData &barometerData);
+    void setBarometerData(const BarometerStatus &barometerData);
     void setIMUData(const SixFloats &sixFloats);
     void setEstimate(const Estimation &estimate);
     void setPyroStatus(const PyroStatus &pyroStatus);

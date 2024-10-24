@@ -7,7 +7,7 @@ Nothing has flown or probably works well enough to fly.
 
 ## Operation get it in the air
 
-Current priorites are to get it into the air as a logging system
+Current priorities are to get it into the air as a logging system
 
 Subsystem Status:
 * [X] GPS

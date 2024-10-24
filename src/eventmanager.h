@@ -40,8 +40,10 @@ struct Event {
         PYRO_FIRE_EVENT =       1 << 5,
         CONTINUITY_LOSS_EVENT = 1 << 6,
         APOGEE_EVENT =          1 << 7,
-        LANDING_EVENT =         1 << 8,
-        LOW_BATTERY_EVENT =     1 << 9,
+        LAWN_DART_EVENT =       1 << 8,
+        LANDING_EVENT =         1 << 9,
+        LOST_ROCKET_EVENT =     1 << 10,
+        LOW_BATTERY_EVENT =     1 << 11,
 
         ALL_EVENT_MASK =        0xFFFFFFFF
     } eventType;
