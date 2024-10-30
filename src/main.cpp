@@ -49,8 +49,8 @@ static TickableSubsystem *tickers100ms[] = {
   NULL};
 static Ticker Ticker100ms(tickers100ms, 100);
 
-static TickableSubsystem *tickers10s[] = {&statusSpew, NULL};
-static Ticker Ticker10s(tickers10s, 10*1000);
+static TickableSubsystem *tickers100s[] = {&statusSpew, NULL};
+static Ticker Ticker100s(tickers100s, 100*1000);
 
 // just publish to StatusManager
 static void subsystemGlue() {
@@ -75,7 +75,7 @@ void setup() {
   SubsystemManager.setup();
   Ticker100ms.setup();
   Ticker10ms.setup();
-  Ticker10s.setup();
+  Ticker100s.setup();
 
   subsystemGlue();
 
@@ -83,7 +83,7 @@ void setup() {
   SubsystemManager.start();
   Ticker100ms.start();
   Ticker10ms.start();
-  Ticker10s.start();
+  Ticker100s.start();
 
   Event startEv;
   startEv.eventType = Event::START_EVENT;
