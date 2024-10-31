@@ -8,7 +8,7 @@
 /**
  * @brief A logger based upon https://github.com/thijse/Arduino-Log
  *
- * This implementaiton is thread-safe and is ready to begin logging as soon as the logger is constructed. Add printers with AddPrinter, a convenience function of addSerial() is provided
+ * This implementation is thread-safe and is ready to begin logging as soon as the logger is constructed. Add printers with AddPrinter, a convenience function of addSerial() is provided
  *
  * It will not start outputting until the thread is started.
  *
