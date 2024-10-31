@@ -14,6 +14,31 @@ BaseSubsystem::Status BaseSubsystem::getStatus() const {
     return rc;
 }
 
+const char * const BaseSubsystem::statusString() const {
+    const auto status = getStatus();
+    switch(status) {
+        case INIT:
+            return "INIT";
+            break;
+        case READY:
+            return "READY";
+            break;
+        case FAULT:
+            return "FAULT";
+            break;
+        case RUNNING:
+            return "RUNNING";
+            break;
+        case STOPPED:
+            return "STOPPED";
+            break;
+        default:
+            return "INVALID STATUS";
+            break;
+    }
+}
+
+
 void BaseSubsystem::setStatus(BaseSubsystem::Status newStatus) {
     rwLock.Lock();
     status = newStatus;
@@ -54,7 +79,7 @@ BaseSubsystem::Status ThreadedSubsystem::start() {
             taskPriority(),
             taskStack,
             &taskBuffer,
-            0);
+            core());
     }
     if (taskHandle == nullptr) {
         setStatus(FAULT);
@@ -70,6 +95,18 @@ int ThreadedSubsystem::taskPriority() const {
 
 void * const ThreadedSubsystem::taskParameter() {
     return nullptr;
+}
+
+/**
+ * @brief default implementation alternates cores
+ * 
+ * @return int the core to run on
+ */
+int ThreadedSubsystem::core() {
+    static int alternator = 0;
+    auto core = alternator;
+    alternator += alternator % 2;
+    return core;
 }
 
 SubsystemManagerClass::SubsystemManagerClass() {}
@@ -95,7 +132,6 @@ void SubsystemManagerClass::addSubsystem(Spec *spec) {
     }
     specs = spec;
 }
-
 
 BaseSubsystem::Status SubsystemManagerClass::setup() {
     auto spec = specs;
@@ -134,6 +170,15 @@ BaseSubsystem::Status SubsystemManagerClass::start() {
     setStatus(RUNNING);
     return getStatus();
 }
+
+void SubsystemManagerClass::iterateSubsystems(SubsystemFn fn, void *args) {
+    rwLock.RLock();
+    for (Spec *spec = specs; spec; spec=spec->next) {
+        fn(spec->subsystem, args);
+    }
+    rwLock.RUnlock();
+}
+
 
 SubsystemManagerClass::Spec* SubsystemManagerClass::findSpecBySubsystem(BaseSubsystem *needle) {
     auto spec = specs;

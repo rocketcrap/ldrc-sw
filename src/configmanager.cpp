@@ -132,7 +132,7 @@ ConfigData::ConfigData(const ConfigData& other) {
     }
 }
 
-ConfigManagerClass::ConfigManagerClass() : BaseSubsystem(), DataThing<ConfigData>(rwLock) {
+ConfigManagerClass::ConfigManagerClass() : BaseSubsystem(), DataProvider<ConfigData>(rwLock) {
     name = "configmgr";
     static BaseSubsystem* deps[] = {&LogWriter, NULL};
     static SubsystemManagerClass::Spec spec(this, deps);

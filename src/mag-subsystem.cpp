@@ -5,7 +5,7 @@
 
 MagSubsystemClass MagSubsystem;
 
-MagSubsystemClass::MagSubsystemClass() : DataThing<threeFloats>(rwLock) {
+MagSubsystemClass::MagSubsystemClass() : DataProvider<threeFloats>(rwLock) {
     name = "magenetometer subystem";
 };
 
@@ -43,4 +43,8 @@ BaseSubsystem::Status MagSubsystemClass::tick() {
 
     callCallbacks();
     return getStatus();
+}
+
+int MagSubsystemClass::period() const {
+    return 100; //FIXME: for now
 }

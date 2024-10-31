@@ -5,7 +5,7 @@
 
 GPSSubsystemClass GPSSubsystem;
 
-GPSSubsystemClass::GPSSubsystemClass() : DataThing<GPSFix>(rwLock), gpsLoopMillis(0), positioningMillis(0), noFixYet(true) {
+GPSSubsystemClass::GPSSubsystemClass() : DataProvider<GPSFix>(rwLock), gpsLoopMillis(0), positioningMillis(0), noFixYet(true) {
     name = "GPS";
     static BaseSubsystem* deps[] = {&StatusManager, &LogWriter, NULL};
     static SubsystemManagerClass::Spec spec(this, deps);

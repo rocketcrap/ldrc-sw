@@ -1,15 +1,15 @@
 #include "ticker.h"
 
-Ticker::Ticker(TickableSubsystem** _subsystems, int _intervalMS) : subsystems(_subsystems), intervalMS(_intervalMS) {
-    name = "ticker";
-
-    // Ticker is not a singleton and you should start/setup manually
-    // static BaseSubsystem* deps[] = {NULL};
-    // static SubsystemManagerClass::Spec spec = {
-    //     .subsystem = this,
-    //     .deps = deps,
-    // };
-    // SubsystemManager.addSubsystem(&spec);
+Ticker::Ticker(TickableSubsystem** _subsystems, int _intervalMS, const char *name, int priority) : 
+    subsystems(_subsystems), intervalMS(_intervalMS), priority(priority),
+    spec(static_cast<BaseSubsystem*>(this), static_cast<BaseSubsystem**>(deps)) {
+    this->name = name;
+    
+    bzero(deps, sizeof(deps)); // all values null
+    for (auto i = 0; subsystems[i] && i < MAX_DEPS; i++) {
+        deps[i] = subsystems[i];
+    }
+    SubsystemManager.addSubsystem(&spec);
 }
 
 BaseSubsystem::Status Ticker::setup() {
@@ -26,23 +26,47 @@ BaseSubsystem::Status Ticker::setup() {
     return newStatus;
 }
 
+int Ticker::period() const {
+    rwLock.RLock();
+    auto rc = intervalMS;
+    rwLock.RUnlock();
+    return rc;
+}
+
+void Ticker::setPeriod(int period) {
+    rwLock.Lock();
+    intervalMS = period;
+    rwLock.UnLock();
+}
+
 int Ticker::taskPriority() const {
-    return 1;
+    return priority;
+}
+
+int Ticker::getPercentBusy() const {
+    rwLock.RLock();
+    auto rc = roundf((100 * medianDuration) / (intervalMS * 1000.0f));
+    rwLock.RUnlock();
+    return rc;
 }
 
 void Ticker::taskFunction(void *parameter) {
-    const auto period = (intervalMS * configTICK_RATE_HZ) / 1000L;
-
     // Initialise with the current time.
     auto lastWakeTime = xTaskGetTickCount();
     while(1) {
-        // Wait for the next cycle.
-        vTaskDelayUntil(&lastWakeTime, period);
+        const auto start = micros();
 
         for (auto i = 0; subsystems && subsystems[i] != nullptr; i++) {
             if (subsystems[i]->getStatus() != FAULT) {
                 subsystems[i]->tick();
             }
         }
-    }
+
+        const auto end = micros();
+        rwLock.Lock();
+        medianDuration = durationFilter(end - start);
+        rwLock.UnLock();
+
+        // Wait for the next cycle.
+        vTaskDelayUntil(&lastWakeTime, period());    }
 }

@@ -38,7 +38,7 @@ void convertFromJson(JsonVariantConst src, ConfigData::WIFIConfig &dst);
 bool convertToJson(const ConfigData &src, JsonVariant dst);
 void convertFromJson(JsonVariantConst src, ConfigData &dst);
 
-class ConfigManagerClass : public BaseSubsystem, public DataThing<ConfigData> {
+class ConfigManagerClass : public BaseSubsystem, public DataProvider<ConfigData> {
     public:
         ConfigManagerClass();
         virtual ~ConfigManagerClass();

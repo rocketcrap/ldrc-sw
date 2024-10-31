@@ -10,8 +10,10 @@
 
 StateManagerClass StateManager;
 
-StateManagerClass::StateManagerClass() : state(Packet::INIT), armingError(NULL), vel(TimeStep(0.1)), acc(TimeStep(0.1)), burnoutCount(0) {
+StateManagerClass::StateManagerClass() : state(Packet::INIT), vel(TimeStep(0.1)), acc(TimeStep(0.1)), burnoutCount(0) {
       name = "state manager";
+      strncpy(armingError, "", sizeof(armingError));
+
       //FIXME: more deps
       static BaseSubsystem* deps[] = {&BaroSubystem, &GPSSubsystem, &BMI088Subsystem, &EventManager, &LogWriter, NULL};
       static SubsystemManagerClass::Spec spec(this, deps);
@@ -91,42 +93,24 @@ bool StateManagerClass::canArm() {
       rwLock.RLock();
 
       if (state != Packet::DISARMED) {
-            armingError = "refusing to arm b/c not DISARMED";
-            Log.errorln(armingError);
-            goto out;
-      }
-      // FIXME: push iteration of subsystems to subsystemanager
-      // you can only arm if everything is going right, I guess
-      if (GPSSubsystem.getStatus() != BaseSubsystem::RUNNING) {
-            armingError = "refusing to arm b/c GPS not running";
-            Log.errorln(armingError);
-            goto out;
-      }
-      if (GPSSubsystem.getFix().fixType != 3) {
-            armingError = "refusing to arm b/c no 3d fix";
-            Log.errorln(armingError);
-            goto out;
-      }
-      if (BMI088Subsystem.getStatus() != BaseSubsystem::RUNNING) {
-            armingError = "refusing to arm b/c IMU not running";
-            Log.errorln(armingError);
-            goto out;
-      }
-      if (BaroSubystem.getStatus() != BaseSubsystem::RUNNING) {
-            armingError = "refusing to arm b/c IMU not running";
-            Log.errorln(armingError);
-            goto out;
-      }
-      if (MagSubsystem.getStatus() != BaseSubsystem::RUNNING) {
-            armingError = "refusing to arm b/c magnetometer not running";
+            strncpy(armingError, "refusing to arm b/c not DISARMED", sizeof(armingError));
             Log.errorln(armingError);
             goto out;
       }
 
-      // TODO: radio subsytem
+      SubsystemManager.iterateSubsystems([](const BaseSubsystem *it, void *args) {
+            auto self = static_cast<StateManagerClass*>(args);
+            const auto status = it->getStatus();
+            if (status != BaseSubsystem::RUNNING && status != BaseSubsystem::STOPPED) {
+                  snprintf(self->armingError, sizeof(self->armingError), 
+                        "refusing to arm b/c subsystem: %s in state %s", 
+                        it->name, it->statusString());
+            }
+
+      }, this);
 
       if (!PyroManager.allConfiguredChannelsContinuity()) {
-            armingError = "not all configured channels have continuity";
+            strncpy(armingError, "not all configured channels have continuity", sizeof(armingError));
             Log.errorln(armingError);
             goto out;
       }
@@ -141,7 +125,7 @@ out:
 
 }
 
-const char  * const StateManagerClass::armError() const {
+const char * StateManagerClass::armError() const {
       rwLock.RLock();
       auto rc = armingError;
       rwLock.RUnlock();
@@ -223,7 +207,6 @@ void StateManagerClass::detect() {
                   break;
             case Packet::UNDER_CHUTE:
                   detectTouchdown();
-                  // TODO: detect touchdown
                   break;
             case Packet::TOUCHDOWN:
                   if (!detectLost()) {

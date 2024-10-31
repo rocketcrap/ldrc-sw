@@ -16,7 +16,7 @@ struct BarometerData {
 };
 
 
-class BaroSubsystemClass : public TickableSubsystem, public DataThing<BarometerData> {
+class BaroSubsystemClass : public TickableSubsystem, public DataProvider<BarometerData> {
 public:
     BaroSubsystemClass();
     virtual ~BaroSubsystemClass();

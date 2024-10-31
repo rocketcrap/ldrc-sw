@@ -8,7 +8,7 @@
 //uncomment to make NMEA sentences appear in serial log
 //#define GPS_SPEW
 
-class GPSSubsystemClass : public TickableSubsystem, public DataThing<GPSFix> {
+class GPSSubsystemClass : public TickableSubsystem, public DataProvider<GPSFix> {
     public:
         GPSSubsystemClass();
         virtual ~GPSSubsystemClass();
@@ -17,7 +17,6 @@ class GPSSubsystemClass : public TickableSubsystem, public DataThing<GPSFix> {
         GPSFix getFix() const;
 
         BaseSubsystem::Status tick();
-
 
     private:
         SFE_UBLOX_GNSS gps;

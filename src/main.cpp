@@ -18,12 +18,15 @@ class StatusSpew : public TickableSubsystem {
   public:
     StatusSpew() {}
     virtual ~StatusSpew() {}
-    virtual Status setup() {
+    Status setup() {
       setStatus(BaseSubsystem::READY);
       return getStatus();
     }
+    int period() const {
+      return 10*1000;
+    }
   protected:
-    virtual Status tick() {
+    Status tick() {
       static JsonDocument json;
 
       StatusManager.readData([](const StatusPacket &pkt, void *arg) {
@@ -36,21 +39,20 @@ class StatusSpew : public TickableSubsystem {
 } statusSpew;
 
 
+static TickableSubsystem *SPITickers[] = {&BMI088Subsystem, NULL};
+static Ticker SPITicker(SPITickers, 10, "SPI Ticker", 2);
 
-static TickableSubsystem *tickers10ms[] = {&BMI088Subsystem, NULL};
-static Ticker Ticker10ms(tickers10ms, 10);
-
-static TickableSubsystem *tickers100ms[] = {
+static TickableSubsystem *slowerTickers[] = {
   &GPSSubsystem, 
   &BaroSubystem, 
   &MagSubsystem,
   &PyroManager, 
   &StatusManager,
   NULL};
-static Ticker Ticker100ms(tickers100ms, 100);
+static Ticker slowerTicker(slowerTickers, 100);
 
-static TickableSubsystem *tickers100s[] = {&statusSpew, NULL};
-static Ticker Ticker100s(tickers100s, 100*1000);
+static TickableSubsystem *verySlowTickers[] = {&statusSpew, NULL};
+static Ticker verySlowTicker(verySlowTickers, 100*1000);
 
 // just publish to StatusManager
 static void subsystemGlue() {
@@ -63,6 +65,30 @@ static void subsystemGlue() {
   BMI088Subsystem.registerCallback([](const SixFloats& f, void* args){
     StatusManager.setIMUData(f);
   }, NULL);
+  EventManager.subscribe([](const Event &ev, void* arg) {
+    switch(ev.eventType) {
+      case Event::START_EVENT:
+      SPITicker.setPeriod(100);
+      slowerTicker.setPeriod(1000);
+      break;
+
+      case Event::ARM_EVENT:
+      // full speed
+      SPITicker.setPeriod(10);
+      slowerTicker.setPeriod(100);
+      break;
+
+      case Event::DISARM_EVENT:
+      // Slow down, but still able to function
+      SPITicker.setPeriod(100); 
+      slowerTicker.setPeriod(1000);
+      break;
+
+      case Event::LANDING_EVENT:
+      // TODO: some kind of low power concept
+      break;
+    }
+  }, Event::ALL_EVENT_MASK, NULL);
 }
 
 
@@ -73,17 +99,11 @@ void setup() {
 
   Log.noticeln("setting up...");
   SubsystemManager.setup();
-  Ticker100ms.setup();
-  Ticker10ms.setup();
-  Ticker100s.setup();
 
   subsystemGlue();
 
   Log.noticeln("starting...");
   SubsystemManager.start();
-  Ticker100ms.start();
-  Ticker10ms.start();
-  Ticker100s.start();
 
   Event startEv;
   startEv.eventType = Event::START_EVENT;

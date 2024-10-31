@@ -7,13 +7,8 @@
 #include <CircularBuffer.hpp>
 #include <Differentiator.h>
 
-// Still WIP
-// DONE: StateManager as source of AGL altitude
-// DONE: StateManager as a source of vert velocity
-// DONE: convert pyro to be armed/disarmed via state manager
-// FIXME: Battery measurement or kick out battery failing state
-// FIXME: all systems go check
-// FIXME: pointing up
+// TODO: Battery measurement or kick out battery failing state
+// TODO: pointing up
 
 class StateManagerClass : public BaseSubsystem {
     public:
@@ -48,9 +43,9 @@ class StateManagerClass : public BaseSubsystem {
         /**
          * @brief return error set with arm() or canArm()
          *
-         * @return const char* const error string
+         * @return const char* error string
          */
-        const char * const armError() const;
+        const char* armError() const;
 
         /**
          * @brief disarm
@@ -89,11 +84,11 @@ class StateManagerClass : public BaseSubsystem {
         static constexpr auto machLockoutTrigger = 800 * FT_PER_METER; // mach lockout trigger
         static constexpr auto machLockoutRelease = 100 * FT_PER_METER; // mach lockout lower threshold
 
-        static constexpr auto coastThresh = 0.25 * G; // 1/4 G is thresh to declare coast
+        static constexpr auto coastThresh = G/4; // 1/4 G is thresh to declare coast
 
         static constexpr auto lostThreshold = 2*3600; // how long before your rocket is "lost"
 
-        const char * armingError;
+        char armingError[80];
 
         // last gps recorded alt - used in liftoff detection
         int last_gps;

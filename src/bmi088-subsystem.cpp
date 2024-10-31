@@ -6,14 +6,12 @@
 BMI088SubsystemClass BMI088Subsystem;
 
 BMI088SubsystemClass::BMI088SubsystemClass() :
-    DataThing<SixFloats>(rwLock), bmi088(SPI, IMU_CSB1, IMU_CSB2),
+    DataProvider<SixFloats>(rwLock), bmi088(SPI, IMU_CSB1, IMU_CSB2),
     gyro(SPI, IMU_CSB2), accel(SPI, IMU_CSB1) {
     name = "BMI088 Subsystem";
-    Bmi088(SPI, IMU_CSB1, IMU_CSB2);
 }
 
 BMI088SubsystemClass::~BMI088SubsystemClass() {
-
 }
 
 BaseSubsystem::Status BMI088SubsystemClass::setup() {
@@ -28,7 +26,7 @@ BaseSubsystem::Status BMI088SubsystemClass::setup() {
     }
     rc = gyro.begin();
     if (rc < 0) {
-        Log.errorln("bmi088 acceel error: %d", rc);
+        Log.errorln("bmi088 accel error: %d", rc);
         goto out;
     }
     bmi088.setRange(Bmi088::ACCEL_RANGE_24G, Bmi088::GYRO_RANGE_1000DPS); // ?? idk
@@ -36,7 +34,7 @@ BaseSubsystem::Status BMI088SubsystemClass::setup() {
 
     // FIXME: read gets (according to docs- confirm in source) NEWEST data in buffer
     // we need to sample at very high frequency, but hw has a buffer of 64? entries?
-    // so we need to sample theoritically 1/64 as fast. But really, a little faster
+    // so we need to sample theoretically 1/64 as fast. But really, a little faster
 
     // maaaybe interrupt???
     /* TODO: set some mode stuff */

@@ -4,7 +4,7 @@
 
 StatusManagerClass StatusManager;
 
-StatusManagerClass::StatusManagerClass() : DataThing<StatusPacket>(rwLock) {
+StatusManagerClass::StatusManagerClass() : DataProvider<StatusPacket>(rwLock) {
     static BaseSubsystem* deps[] = {NULL};
     static SubsystemManagerClass::Spec spec(this, deps);
 

@@ -12,7 +12,7 @@
  * will be just the radio format
  *
  */
-class StatusManagerClass : public TickableSubsystem, public DataThing<StatusPacket>
+class StatusManagerClass : public TickableSubsystem, public DataProvider<StatusPacket>
 {
 public:
     StatusManagerClass();

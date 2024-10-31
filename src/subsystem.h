@@ -2,9 +2,20 @@
 
 #include <Arduino.h>
 #include "rwlock.h"
+//#include "log.h"
+
+// DONE: iterate subsystems in manager
+// DONE: ticking frequency
+// FIXME: load average kinda stuff
+// FIXME: MEGA ticker
+// DONE: switching cores
+// FIXME: auto ticker add... tricky- think SPI/I2C kind mutex stuff
+// DONE: rename DataThing
+// DONE: don't directly, and yet we do
+// DONE: status to string
 
 /**
- * @brief BaseSubsystem is the base class of all subsystems. It is not to be directly used.
+ * @brief BaseSubsystem is the base class of all subsystems.
  *
  */
 class BaseSubsystem {
@@ -16,6 +27,19 @@ class BaseSubsystem {
         RUNNING,    ///< Subsystem is running normally
         STOPPED     ///< Subsystem is stopped normally
     };
+
+   /**
+    * @brief get a string representation of status
+    * 
+    * @return const char* const string representation of status
+    */
+   const char * const statusString() const;
+
+    /**
+     * @brief The human readable name of the subsystem
+     *
+     */
+    const char *name;
 
     /**
      * @brief override this method in subclass to setup the subsystem
@@ -57,12 +81,6 @@ class BaseSubsystem {
      *
      */
     Status status;
-
-    /**
-     * @brief The human readable name of the subsystem
-     *
-     */
-    const char *name;
 
     /**
      * @brief thread safe read/write lock w/ 8 slots
@@ -129,6 +147,13 @@ class ThreadedSubsystem : public BaseSubsystem {
      */
     virtual void taskFunction(void *parameter) = 0;
 
+   /**
+    * @brief which core this task should run on
+    * 
+    * @return int core number to run on
+    */
+   virtual int core();
+
     /**
      * @brief TaskHandle for the thread of this subsystem
      *
@@ -143,12 +168,12 @@ class ThreadedSubsystem : public BaseSubsystem {
 };
 
 /**
- * @brief DataThing is designed to provide subsribe read primitives
+ * @brief DataProvider is designed to provide subscribe read primitives
  *
- * @tparam T
+ * @tparam T type of underlying data to provide
  */
 template<class T>
-class DataThing {
+class DataProvider {
    public:
       typedef void(DataFn)(const T &, void *args);
 
@@ -159,9 +184,9 @@ class DataThing {
        *
        * @param locker a ReadWriteLocker to lock
        */
-      DataThing(ReadWriteLock &locker) : lock(locker), numCallbacks(0) {}
+      DataProvider(ReadWriteLock &locker) : lock(locker), numCallbacks(0) {}
 
-      virtual ~DataThing() {}
+      virtual ~DataProvider() {}
 
       /**
        * @brief register a callback to be called when Data changes
@@ -169,19 +194,22 @@ class DataThing {
        * @param fn a function to be called with const reference to data
        * @param args additional arguments to be call function with
        */
-      void registerCallback(DataThing<T>::DataFn fn, void *args) {
-         lock.Lock();
-         if (numCallbacks == MAX_CALLBACKS) {
-            //Log.errorln("Tried to add beyond %d callbacks", MAX_CALLBACKS);
-            lock.UnLock();
-            return;
-         }
-         callback cb {
+      void registerCallback(DataProvider<T>::DataFn fn, void *args) {
+         callback cb  {
             .args = args,
             .fn = fn
          };
+
+         lock.Lock();
+
+         if (numCallbacks == MAX_CALLBACKS) {
+            //Log.errorln("Tried to add beyond %d callbacks", MAX_CALLBACKS);
+            goto out;
+         }
          callbacks[numCallbacks] = cb;
          numCallbacks++;
+
+      out:
          lock.UnLock();
       }
 
@@ -193,7 +221,7 @@ class DataThing {
        * @param fn a function to be called with const reference to data
        * @param args additional arguments to be call function with
        */
-      void readData(DataThing<T>::DataFn fn, void *args) const {
+      void readData(DataProvider<T>::DataFn fn, void *args) const {
          lock.RLock();
          fn(data, args);
          lock.RUnlock();
@@ -219,16 +247,15 @@ class DataThing {
        */
       virtual void callCallbacks() {
          onUpdate(); // invoke hook if defined
-         lock.RLock();
-         auto n = numCallbacks;
-         lock.RUnlock();
 
-         for (auto i = 0; i < n; i++) {
-            lock.RLock();
+         lock.RLock();
+
+         for (auto i = 0; i < numCallbacks; i++) {
             callback cb = callbacks[i];
-            lock.RUnlock();
             cb.fn(data, cb.args);
          }
+
+         lock.RUnlock();
       }
 
       /**
@@ -246,8 +273,8 @@ class DataThing {
    private:
       static constexpr size_t MAX_CALLBACKS = 8;
 
-      DataThing() = delete;
-      DataThing(const DataThing& other) = delete;
+      DataProvider() = delete;
+      DataProvider(const DataProvider& other) = delete;
 
       ReadWriteLock &lock;
       int numCallbacks;
@@ -265,6 +292,8 @@ class DataThing {
  */
 class SubsystemManagerClass : public BaseSubsystem {
 public:
+   typedef void(SubsystemFn)(const BaseSubsystem *, void *args);
+
    /**
     * @brief Specification for dependencies of a threaded subsystem
     *
@@ -294,7 +323,7 @@ public:
     * @param spec the dependency specification of this subsystem
     *
     * In your constructor, use as:
-    * static BaseSubsystem* deps[] = {&DependentSubsystemIstance, NULL};
+    * static BaseSubsystem* deps[] = {&DependentSubsystemInstance, NULL};
     * static SubsystemManagerClass::Spec spec = {
     *    .subsystem = this,
     *    .deps = deps,
@@ -304,6 +333,14 @@ public:
    void addSubsystem(Spec *spec);
    Status setup();
    Status start();
+
+   /**
+    * @brief iterate over all subsystems the manager knows about
+    * 
+    * @param fn function pointer to call
+    * @param args arguments to call fn with
+    */
+   void iterateSubsystems(SubsystemFn fn, void *args);
 
 private:
    Spec* specs;

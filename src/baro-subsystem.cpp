@@ -5,7 +5,7 @@
 
 BaroSubsystemClass BaroSubystem;
 
-BaroSubsystemClass::BaroSubsystemClass() :DataThing<BarometerData>(rwLock), ms5611(0x76) {
+BaroSubsystemClass::BaroSubsystemClass() :DataProvider<BarometerData>(rwLock), ms5611(0x76) {
     name = "baro";
     static BaseSubsystem* deps[] = {&StatusManager, &LogWriter, NULL};
     static SubsystemManagerClass::Spec spec(this, deps);

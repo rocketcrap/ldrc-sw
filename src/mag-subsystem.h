@@ -10,12 +10,13 @@ struct threeFloats {
     float z;
 };
 
-class MagSubsystemClass : public TickableSubsystem, public DataThing<threeFloats> {
+class MagSubsystemClass : public TickableSubsystem, public DataProvider<threeFloats> {
 public:
     MagSubsystemClass();
     virtual ~MagSubsystemClass();
     BaseSubsystem::Status setup();
     BaseSubsystem::Status tick();
+    int period() const;
 
 private:
     Adafruit_LIS3MDL sensor;

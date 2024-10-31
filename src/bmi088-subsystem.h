@@ -5,13 +5,14 @@
 #include <BMI088.h>
 
 
-class BMI088SubsystemClass : public TickableSubsystem, public DataThing<SixFloats> {
+class BMI088SubsystemClass : public TickableSubsystem, public DataProvider<SixFloats> {
 public:
     BMI088SubsystemClass();
     virtual ~BMI088SubsystemClass();
 
     BaseSubsystem::Status setup();
     BaseSubsystem::Status tick();
+
 private:
     Bmi088 bmi088;
     Bmi088Gyro gyro;
