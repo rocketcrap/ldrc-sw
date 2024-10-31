@@ -59,10 +59,6 @@ BaseSubsystem::Status DataLoggerClass::start() {
 void DataLoggerClass::taskFunction(void *paremeter) {
     while(1) {
         auto xLastWakeTime = xTaskGetTickCount();
-        if (ConfigManager.getMode() != ConfigData::Mode::FLIGHT_COMPUTER) {
-            // switching modes shouldn't take more than a second to respond
-            delay(SECOND);
-        }   continue;
 
         // this is a little confusing, but actually shove a status packet if our period is "on"
         if (getPeriod() > 0) {

@@ -5,7 +5,6 @@
 ConfigManagerClass ConfigManager;
 
 // for json
-static constexpr char MODE_STR[] =              "mode";
 static constexpr char NAME_STR[] =              "name";
 static constexpr char ID_STR[] =                "ID";
 static constexpr char DELAY_SECONDS_STR[] =     "delaySeconds";
@@ -46,43 +45,13 @@ bool canConvertFromJson(JsonVariantConst src, const ConfigData::WIFIConfig&) {
     src[APMODE_STR].is<bool>();
 }
 
-const char* ConfigData::modeToString() const {
-    const char *str = NULL;
-    switch(mode) {
-        case ConfigData::Mode::FLIGHT_COMPUTER:
-        str = FLIGHT_COMPUTER_STR;
-        break;
-        case ConfigData::Mode::GROUND_STATION:
-        str = GROUND_STATION_STR;
-        break;
-        case ConfigData::Mode::RELAY:
-        str = RELAY_STR;
-        break;
-
-        default:
-        str = "INVALID";
-        break;
-    }
-    return str;
-}
-
-void ConfigData::modeFromString(const char *str) {
-    // default mode is flight computer
-    mode = FLIGHT_COMPUTER;
-    if (!strncmp(GROUND_STATION_STR, str, sizeof(GROUND_STATION_STR))) {
-        mode = GROUND_STATION;
-    } else if (!strncmp(RELAY_STR, str, sizeof(RELAY_STR))) {
-        mode = RELAY;
-    }
-}
-
 ConfigData::WIFIConfig::WIFIConfig(const ConfigData::WIFIConfig &other) {
     strncpy(ESSID, other.ESSID, sizeof(ESSID));
     strncpy(password, other.password, sizeof(password));
     APMode = other.APMode;
 }
 
-ConfigData::ConfigData() : beeperFrequency(defaultBeeperFrequency), mode(FLIGHT_COMPUTER) {
+ConfigData::ConfigData() : beeperFrequency(defaultBeeperFrequency) {
     // find the ID
     uint8_t baseMac[6];
 	// Get MAC address for WiFi station
@@ -95,46 +64,6 @@ ConfigData::ConfigData() : beeperFrequency(defaultBeeperFrequency), mode(FLIGHT_
     wifiConfig.APMode = defaultAPMode;
     strncpy(wifiConfig.password, defaultPassword, sizeof(wifiConfig.password));
     snprintf(wifiConfig.ESSID, sizeof(wifiConfig.ESSID), "ldrc-%02X:%02X:%02X:%02X:%02X:%02X", baseMac[1], baseMac[2], baseMac[3], baseMac[4], baseMac[5]);
-}
-
-const char* modeToString(const ConfigData::Mode mode) {
-    const char *str = NULL;
-    switch(mode) {
-        case ConfigData::Mode::FLIGHT_COMPUTER:
-        str = FLIGHT_COMPUTER_STR;
-        break;
-        case ConfigData::Mode::GROUND_STATION:
-        str = GROUND_STATION_STR;
-        break;
-        case ConfigData::Mode::RELAY:
-        str = RELAY_STR;
-        break;
-
-        default:
-        str = "INVALID";
-        break;
-    }
-    return str;
-}
-
-bool convertToJson(const ConfigData::Mode &src, JsonVariant dst) {
-    dst[MODE_STR] = modeToString(src);
-    return true;
-}
-
-void convertFromJson(JsonVariantConst src, ConfigData::Mode &dst) {
-    if (src[MODE_STR].is<String>()) {
-        auto value = src[MODE_STR].as<String>();
-        if (value == FLIGHT_COMPUTER_STR) {
-            dst = ConfigData::Mode::FLIGHT_COMPUTER;
-        } else if (value == GROUND_STATION_STR) {
-            dst = ConfigData::Mode::GROUND_STATION;
-        } else if (value == RELAY_STR) {
-            dst = ConfigData::Mode::RELAY;
-        } else {
-          // do nothing?
-        }
-    }
 }
 
 bool convertToJson(const ConfigData::WIFIConfig &src, JsonVariant dst) {
@@ -164,7 +93,6 @@ bool convertToJson(const ConfigData &src, JsonVariant dst) {
     dst[NAME_STR] = src.name;
     dst[ID_STR] = src.ID;
     dst[BEEPER_FREQUENCY_STR] = src.beeperFrequency;
-    dst[MODE_STR] = src.modeToString();
     dst[WIFI_CONFIG_STR] = src.wifiConfig;
 
     auto arr = dst[PYRO_CONFIG_STR].to<JsonArray>();
@@ -184,9 +112,6 @@ void convertFromJson(JsonVariantConst src, ConfigData &dst) {
         auto beeperFrequency = src[BEEPER_FREQUENCY_STR].as<int>();
         dst.beeperFrequency = beeperFrequency;
     }
-    if (src[MODE_STR].is<ConfigData::Mode>()) {
-        dst.mode = src[MODE_STR].as<ConfigData::Mode>();
-    }
     if (src[WIFI_CONFIG_STR].is<ConfigData::WIFIConfig>()) {
         dst.wifiConfig = src[WIFI_CONFIG_STR].as<ConfigData::WIFIConfig>();
     }
@@ -201,7 +126,6 @@ ConfigData::ConfigData(const ConfigData& other) {
     strncpy(name, other.name, sizeof(name));
     strncpy(ID, other.ID, sizeof(ID));
     beeperFrequency = other.beeperFrequency;
-    mode = other.mode;
     wifiConfig = other.wifiConfig;
     for (auto i = 0; i < PyroChannelConfig::maxPyroChannels; i++) {
         pyroConfigs[i] = other.pyroConfigs[i];
@@ -228,13 +152,6 @@ BaseSubsystem::Status ConfigManagerClass::start() {
     load();
     setStatus(RUNNING);
     return getStatus();
-}
-
-ConfigData::Mode ConfigManagerClass::getMode() const {
-    rwLock.RLock();
-    auto ret = data.mode;
-    rwLock.RUnlock();
-    return ret;
 }
 
 void ConfigManagerClass::save() {

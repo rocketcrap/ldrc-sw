@@ -18,12 +18,6 @@ struct __attribute__((packed)) ConfigData {
     char ID[18];
     int beeperFrequency;
 
-    enum Mode {
-        FLIGHT_COMPUTER,
-        GROUND_STATION,
-        RELAY,
-    } mode;
-
     struct __attribute__((packed)) WIFIConfig {
         WIFIConfig(): ESSID("UNSET"), password("UNSETUNSET") {}
         WIFIConfig(const WIFIConfig &other);
@@ -36,10 +30,6 @@ struct __attribute__((packed)) ConfigData {
 
     PyroChannelConfig pyroConfigs[PyroChannelConfig::maxPyroChannels];
 };
-
-const char* modeToString(const ConfigData::Mode mode);
-bool convertToJson(const ConfigData::Mode &src, JsonVariant dst);
-void convertFromJson(JsonVariantConst src, ConfigData::Mode &dst);
 
 bool canConvertFromJson(JsonVariantConst src, const ConfigData::WIFIConfig&);
 bool convertToJson(const ConfigData::WIFIConfig &src, JsonVariant dst);
@@ -56,13 +46,6 @@ class ConfigManagerClass : public BaseSubsystem, public DataThing<ConfigData> {
 
         BaseSubsystem::Status setup();
         BaseSubsystem::Status start();
-
-        /**
-         * @brief convenience function to get the Mode
-         *
-         * @return ConfigData::Mode mode of device
-         */
-        ConfigData::Mode getMode() const;
 
         void setConfigData(const ConfigData &other);
 

@@ -165,7 +165,6 @@ struct __attribute__((packed)) GPSPacket
 struct __attribute__((packed)) NamePacket {
     uint16_t sender;
     char name[32+1];
-    ConfigData::Mode mode;
 };
 bool convertToJson(const NamePacket& src, JsonVariant dst);
 

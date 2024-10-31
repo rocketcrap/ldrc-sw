@@ -184,6 +184,5 @@ bool convertToJson(const NamePacket& src, JsonVariant dst) {
     dst["type"] = "namePacket";
     dst["sender"] = src.sender;
     dst["name"].set(src.name);
-    dst["mode"] = modeToString(src.mode);
     return true;
 }
