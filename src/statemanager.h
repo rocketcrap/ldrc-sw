@@ -9,8 +9,8 @@
 
 // Still WIP
 // DONE: StateManager as source of AGL altitude
-// FIXME: StateManager as a source of vert velocity
-// FIXME: convert pyro to be armed/disarmed via state manager
+// DONE: StateManager as a source of vert velocity
+// DONE: convert pyro to be armed/disarmed via state manager
 // FIXME: Battery measurement or kick out battery failing state
 // FIXME: all systems go check
 // FIXME: pointing up
