@@ -145,9 +145,7 @@ bool StateManagerClass::arm() {
             rc = true;
             Log.noticeln("arming");
             state = Packet::ARMED;
-            Event ev;
-            ev.eventType = Event::ARM_EVENT;
-            EventManager.publishEvent(ev);
+            EventManager.publishEvent(Event::ARM_EVENT);
 
             rwLock.UnLock();
       }
@@ -162,9 +160,7 @@ void StateManagerClass::disarm() {
             state = Packet::DISARMED;
       }
       rwLock.UnLock();
-      Event ev;
-      ev.eventType = Event::DISARM_EVENT;
-      EventManager.publishEvent(ev);
+      EventManager.publishEvent(Event::DISARM_EVENT);
 }
 
 int StateManagerClass::getAGL() const {
@@ -252,9 +248,7 @@ bool StateManagerClass::detectLiftoff() {
       if (goingUp && ago100ms && gpsSaysUp && baroSaysUp) {
             state = Packet::BOOST;
             Log.noticeln("liftoff!");
-            Event ev;
-            ev.eventType = Event::LIFTOFF_EVENT;
-            EventManager.publishEvent(ev);
+            EventManager.publishEvent(Event::LIFTOFF_EVENT);
             rc = true;
       }
       return rc;
@@ -281,9 +275,7 @@ bool StateManagerClass::detectBoost() {
       if ((last_acc > boostThresh) && (vertVel > vertVelThresh)) {
             state = Packet::BOOST;
             Log.noticeln("boost");
-            Event ev;
-            ev.eventType = Event::AIRSTART_EVENT;
-            EventManager.publishEvent(ev);
+            EventManager.publishEvent(Event::AIRSTART_EVENT);
             rc = true;
       }
 
@@ -345,9 +337,7 @@ bool StateManagerClass::detectLawnDart() {
             rc = true;
             state = Packet::LAWN_DART;
             Log.noticeln("Lawn dart!");
-            Event ev;
-            ev.eventType = Event::LAWN_DART_EVENT;
-            EventManager.publishEvent(ev);
+            EventManager.publishEvent(Event::LAWN_DART_EVENT);
       }
 
       return rc;
@@ -366,9 +356,7 @@ bool StateManagerClass::detectTouchdown() {
 
             Log.noticeln("touchdown at %d", landed_time);
 
-            Event ev;
-            ev.eventType = Event::LANDING_EVENT;
-            EventManager.publishEvent(ev);
+            EventManager.publishEvent(Event::LANDING_EVENT);
       }
 
       return rc;
@@ -385,9 +373,7 @@ bool StateManagerClass::detectPowerFail() {
       if (false) {
             rc = true;
             state = Packet::POWER_FAIL;
-            Event ev;
-            ev.eventType = Event::LOW_BATTERY_EVENT;
-            EventManager.publishEvent(ev);
+            EventManager.publishEvent(Event::LOW_BATTERY_EVENT);
             // FIXME: include batt voltage in event
       }
 
@@ -403,9 +389,7 @@ bool StateManagerClass::detectLost() {
             state = Packet::LOST;
             Log.noticeln("lost rocket!");
             rc = true;
-            Event ev;
-            ev.eventType = Event::LOST_ROCKET_EVENT;
-            EventManager.publishEvent(ev);
+            EventManager.publishEvent(Event::LOST_ROCKET_EVENT);
       }
 
       return rc;

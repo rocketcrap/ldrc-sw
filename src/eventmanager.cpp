@@ -61,3 +61,10 @@ void EventManagerClass::publishEvent(Event event) {
     event.timestamp = millis();
     xQueueSend(queue, &event, 0);
 }
+
+
+void EventManagerClass::publishEvent(Event::EventType eventType) {
+    Event ev;
+    ev.eventType = eventType;
+    publishEvent(ev);
+}

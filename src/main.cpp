@@ -105,9 +105,7 @@ void setup() {
   Log.noticeln("starting...");
   SubsystemManager.start();
 
-  Event startEv;
-  startEv.eventType = Event::START_EVENT;
-  EventManager.publishEvent(startEv);
+  EventManager.publishEvent(Event::START_EVENT);
   Log.noticeln("playing a song");
 
   SoundSubsystem.playSong(SoundSubsystemClass::IDK_SONG);

@@ -93,6 +93,14 @@ class EventManagerClass : public ThreadedSubsystem {
          */
         void publishEvent(Event event);
 
+        /**
+         * @brief publish event with no args
+         * 
+         * @param eventType type of event to publish
+         */
+        void publishEvent(Event::EventType eventType);
+
+
     protected:
         virtual void taskFunction(void *parameter);
 
