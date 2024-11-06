@@ -21,6 +21,15 @@ class Ticker : public ThreadedSubsystem {
       virtual ~Ticker() {}
 
       /**
+       * @brief start the ticker
+       *
+       * @note Overridden to restart all tickable subsystems when starting from stop
+       *
+       * @return Status RUNNING
+       */
+      Status start();
+
+      /**
        * @brief setup the Ticker
        *
        * @note to start the ticker, you must call start(), inherited from the ThreadedSubsystem
@@ -31,24 +40,34 @@ class Ticker : public ThreadedSubsystem {
 
       /**
        * @brief get the period of this ticker
-       * 
+       *
        * @return int the period in MS
        */
       int period() const;
 
       /**
        * @brief Set the period of this ticker
-       * 
+       *
        * @param period the period in ms
        */
       void setPeriod(int period);
 
       /**
        * @brief Get the percentage this ticker is "Busy"
-       * 
+       *
        * @return int 0-100 percent
        */
       int getPercentBusy() const;
+
+      /**
+       * @brief enter low power mode
+       *
+       * @details Stop the ticking and call lowPowerMode on everything
+       *
+       * @return true
+       * @return false
+       */
+      bool lowPowerMode();
 
    protected:
       Ticker() = delete;

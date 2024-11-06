@@ -45,11 +45,17 @@ void BaseSubsystem::setStatus(BaseSubsystem::Status newStatus) {
     rwLock.UnLock();
 }
 
+bool BaseSubsystem::lowPowerMode() {
+    return false;
+}
+
 TickableSubsystem::~TickableSubsystem() {}
 
 // Not meaningful in tickable subsystem
 BaseSubsystem::Status TickableSubsystem::start() {
-    setStatus(RUNNING);
+    if (getStatus() != FAULT) {
+        setStatus(RUNNING);
+    }
     return getStatus();
 }
 
@@ -70,23 +76,35 @@ BaseSubsystem::Status ThreadedSubsystem::start() {
         auto param = self->taskParameter();
         self->taskFunction(param);
     };
-    if (getStatus() != FAULT) {
-        taskHandle = xTaskCreateStaticPinnedToCore(
-            taskFn,
-            name,
-            STACK_SIZE,
-            this,
-            taskPriority(),
-            taskStack,
-            &taskBuffer,
-            core());
-    }
-    if (taskHandle == nullptr) {
-        setStatus(FAULT);
-    } else {
+    switch(getStatus()) {
+        case READY:
+            taskHandle = xTaskCreateStaticPinnedToCore(
+                taskFn,
+                name,
+                STACK_SIZE,
+                this,
+                taskPriority(),
+                taskStack,
+                &taskBuffer,
+                core());
+        if (taskHandle == nullptr) {
+            setStatus(FAULT);
+        } else {
+            setStatus(RUNNING);
+        }
+        break;
+
+        case STOPPED:
+        vTaskResume(taskHandle);
         setStatus(RUNNING);
+        break;
     }
     return getStatus();
+}
+
+BaseSubsystem::Status ThreadedSubsystem::stop() {
+    vTaskSuspend(taskHandle);
+    setStatus(BaseSubsystem::STOPPED);
 }
 
 int ThreadedSubsystem::taskPriority() const {
@@ -99,7 +117,7 @@ void * const ThreadedSubsystem::taskParameter() {
 
 /**
  * @brief default implementation alternates cores
- * 
+ *
  * @return int the core to run on
  */
 int ThreadedSubsystem::core() {

@@ -55,17 +55,32 @@ BaseSubsystem::Status GPSSubsystemClass::tick() {
     // If this is the first fix, and we've never had a fix- set the time
     if (data.fixType > 1 && noFixYet) {
         noFixYet = false;
-        auto milliseconds = gps.getMillisecond();
-        struct timeval tv = {
-            .tv_sec = static_cast<time_t>(data.epoch), // squash warning about narroring uint32 to int32
-            .tv_usec = milliseconds*1000
-        };
-        settimeofday(&tv, NULL);
-        Log.infoln("first GPS Fix. Setting time at %d.%ld", tv.tv_sec, tv.tv_usec);
+        setRTC();
         // TODO: define event for time set established and emit it
     }
 
     rwLock.UnLock();
     callCallbacks();
     return getStatus();
+}
+
+bool GPSSubsystemClass::lowPowerMode() {
+    setRTC();
+    auto ret = gps.powerSaveMode();
+    if (ret) {
+        setStatus(STOPPED);
+    }
+    return ret;
+}
+
+void GPSSubsystemClass::setRTC() {
+    if (data.fixType > 1) {
+        auto milliseconds = gps.getMillisecond();
+        struct timeval tv = {
+            .tv_sec = static_cast<time_t>(data.epoch), // squash warning about narrowing uint32 to int32
+            .tv_usec = milliseconds*1000
+        };
+        settimeofday(&tv, NULL);
+        Log.infoln("Setting time at %d.%ld", tv.tv_sec, tv.tv_usec);
+    }
 }

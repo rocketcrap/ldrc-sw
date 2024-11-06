@@ -18,11 +18,15 @@ class GPSSubsystemClass : public TickableSubsystem, public DataProvider<GPSFix> 
 
         BaseSubsystem::Status tick();
 
+        bool lowPowerMode();
+
     private:
         SFE_UBLOX_GNSS gps;
         uint32_t gpsLoopMillis;
         uint32_t positioningMillis;
         bool noFixYet;
+
+        void setRTC();
 };
 
 extern GPSSubsystemClass GPSSubsystem;

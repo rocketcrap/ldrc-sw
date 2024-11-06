@@ -5,6 +5,8 @@
 #include <ESPAsyncWebServer.h>
 #include <ArduinoJson.h>
 
+//FIXME: convert to tickable
+
 class WebSubsystemClass : public ThreadedSubsystem {
     public:
         WebSubsystemClass();
@@ -13,7 +15,7 @@ class WebSubsystemClass : public ThreadedSubsystem {
         BaseSubsystem::Status setup();
         BaseSubsystem::Status start();
 
-        void stop();
+        BaseSubsystem::Status stop();
         void cleanup();
 
     protected:

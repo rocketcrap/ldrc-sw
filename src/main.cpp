@@ -85,7 +85,8 @@ static void subsystemGlue() {
       break;
 
       case Event::LANDING_EVENT:
-      // TODO: some kind of low power concept
+      SPITicker.lowPowerMode();
+      slowerTicker.lowPowerMode();
       break;
     }
   }, Event::ALL_EVENT_MASK, NULL);

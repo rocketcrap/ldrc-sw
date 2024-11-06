@@ -1,10 +1,10 @@
 #include "ticker.h"
 
-Ticker::Ticker(TickableSubsystem** _subsystems, int _intervalMS, const char *name, int priority) : 
+Ticker::Ticker(TickableSubsystem** _subsystems, int _intervalMS, const char *name, int priority) :
     subsystems(_subsystems), intervalMS(_intervalMS), priority(priority),
     spec(static_cast<BaseSubsystem*>(this), static_cast<BaseSubsystem**>(deps)) {
     this->name = name;
-    
+
     bzero(deps, sizeof(deps)); // all values null
     for (auto i = 0; subsystems[i] && i < MAX_DEPS; i++) {
         deps[i] = subsystems[i];
@@ -57,7 +57,7 @@ void Ticker::taskFunction(void *parameter) {
         const auto start = micros();
 
         for (auto i = 0; subsystems && subsystems[i] != nullptr; i++) {
-            if (subsystems[i]->getStatus() != FAULT) {
+            if (subsystems[i]->getStatus() == RUNNING) {
                 subsystems[i]->tick();
             }
         }
@@ -69,4 +69,20 @@ void Ticker::taskFunction(void *parameter) {
 
         // Wait for the next cycle.
         vTaskDelayUntil(&lastWakeTime, period());    }
+}
+
+bool Ticker::lowPowerMode() {
+    for (auto i = 0; subsystems && subsystems[i] != nullptr; i++) {
+        subsystems[i]->lowPowerMode();
+    }
+    return stop();
+}
+
+BaseSubsystem::Status Ticker::start() {
+    if (getStatus() == STOPPED) {
+        for (auto i = 0; subsystems && subsystems[i] != nullptr; i++) {
+            subsystems[i]->start();
+        }
+    }
+    return ThreadedSubsystem::start();
 }

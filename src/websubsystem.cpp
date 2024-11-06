@@ -180,9 +180,9 @@ BaseSubsystem::Status WebSubsystemClass::start() {
     return getStatus();
 }
 
-void WebSubsystemClass::stop() {
+BaseSubsystem::Status WebSubsystemClass::stop() {
     server.end();
-    setStatus(BaseSubsystem::STOPPED);
+    return ThreadedSubsystem::stop();
 }
 
 void WebSubsystemClass::cleanup() {

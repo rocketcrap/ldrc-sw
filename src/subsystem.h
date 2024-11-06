@@ -2,17 +2,6 @@
 
 #include <Arduino.h>
 #include "rwlock.h"
-//#include "log.h"
-
-// DONE: iterate subsystems in manager
-// DONE: ticking frequency
-// FIXME: load average kinda stuff
-// FIXME: MEGA ticker
-// DONE: switching cores
-// FIXME: auto ticker add... tricky- think SPI/I2C kind mutex stuff
-// DONE: rename DataThing
-// DONE: don't directly, and yet we do
-// DONE: status to string
 
 /**
  * @brief BaseSubsystem is the base class of all subsystems.
@@ -30,7 +19,7 @@ class BaseSubsystem {
 
    /**
     * @brief get a string representation of status
-    * 
+    *
     * @return const char* const string representation of status
     */
    const char * const statusString() const;
@@ -61,6 +50,16 @@ class BaseSubsystem {
      * @return Status
      */
     Status getStatus() const;
+
+   /**
+    * @brief enter into a lower power state if possible
+    *
+    * @note default implementation just returns false
+    *
+    * @return true entered into low power state
+    * @return false did not enter into low power state
+    */
+    virtual bool lowPowerMode();
 
     // to get access to name
     friend class SubsystemManagerClass;
@@ -121,7 +120,14 @@ class ThreadedSubsystem : public BaseSubsystem {
      *
      * @return Status
      */
-    Status start();
+    virtual Status start();
+
+    /**
+     * @brief stop the thread
+     *
+     * @return Status
+     */
+    virtual Status stop();
 
  protected:
     /**
@@ -149,7 +155,7 @@ class ThreadedSubsystem : public BaseSubsystem {
 
    /**
     * @brief which core this task should run on
-    * 
+    *
     * @return int core number to run on
     */
    virtual int core();
@@ -336,7 +342,7 @@ public:
 
    /**
     * @brief iterate over all subsystems the manager knows about
-    * 
+    *
     * @param fn function pointer to call
     * @param args arguments to call fn with
     */
