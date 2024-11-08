@@ -44,6 +44,13 @@ class BaseSubsystem {
      */
     virtual Status start() = 0;
 
+   /**
+    * @brief stop this subsystem
+    *
+    * @return Status STOPPED or FAULT
+    */
+    virtual Status stop();
+
     /**
      * @brief Get the Status of the subsystem
      *

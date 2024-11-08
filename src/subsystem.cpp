@@ -49,6 +49,11 @@ bool BaseSubsystem::lowPowerMode() {
     return false;
 }
 
+BaseSubsystem::Status BaseSubsystem::stop() {
+    setStatus(STOPPED);
+    return getStatus();
+}
+
 TickableSubsystem::~TickableSubsystem() {}
 
 // Not meaningful in tickable subsystem
@@ -104,7 +109,7 @@ BaseSubsystem::Status ThreadedSubsystem::start() {
 
 BaseSubsystem::Status ThreadedSubsystem::stop() {
     vTaskSuspend(taskHandle);
-    setStatus(BaseSubsystem::STOPPED);
+    return BaseSubsystem::stop();
 }
 
 int ThreadedSubsystem::taskPriority() const {
