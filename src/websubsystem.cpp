@@ -182,16 +182,14 @@ BaseSubsystem::Status WebSubsystemClass::start() {
 
 BaseSubsystem::Status WebSubsystemClass::stop() {
     server.end();
-    return ThreadedSubsystem::stop();
+    return TickableSubsystem::stop();
 }
 
 void WebSubsystemClass::cleanup() {
     ws.cleanupClients();
 }
 
-void WebSubsystemClass::taskFunction(void *arg) {
-    while(1) {
-        delay(250);  //4 times a second seems often enough
-        cleanup();
-    }
+BaseSubsystem::Status WebSubsystemClass::tick() {
+    cleanup();
+    return getStatus();
 }

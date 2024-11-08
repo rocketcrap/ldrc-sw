@@ -7,19 +7,18 @@
 
 //FIXME: convert to tickable
 
-class WebSubsystemClass : public ThreadedSubsystem {
+class WebSubsystemClass : public TickableSubsystem {
     public:
         WebSubsystemClass();
         virtual ~WebSubsystemClass();
 
         BaseSubsystem::Status setup();
         BaseSubsystem::Status start();
-
         BaseSubsystem::Status stop();
-        void cleanup();
+        BaseSubsystem::Status tick();
 
     protected:
-        void taskFunction(void *arg);
+        void cleanup();
 
     private:
         AsyncWebServer server;

@@ -10,6 +10,7 @@
 #include "pyrosubsystem.h"
 #include "bmi088-subsystem.h"
 #include "eventmanager.h"
+#include "websubsystem.h"
 #include "ticker.h"
 
 #include <ArduinoJson.h>
@@ -48,6 +49,7 @@ static TickableSubsystem *slowerTickers[] = {
   &MagSubsystem,
   &PyroManager, 
   &StatusManager,
+  &WebSubsystem,
   NULL};
 static Ticker slowerTicker(slowerTickers, 100);
 
