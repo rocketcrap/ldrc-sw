@@ -11,8 +11,6 @@
 struct __attribute__((packed)) ConfigData {
     ConfigData();
     ConfigData(const ConfigData& other);
-    const char* modeToString() const;
-    void modeFromString(const char* str);
 
     char name[32+1];
     char ID[18];

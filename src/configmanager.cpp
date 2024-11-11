@@ -15,10 +15,6 @@ static constexpr char ESSID_STR[] =             "ESSID";
 static constexpr char PASSWORD_STR[] =          "password";
 static constexpr char APMODE_STR[] =            "APMode";
 
-static constexpr char FLIGHT_COMPUTER_STR[] =   "flightComputer";
-static constexpr char GROUND_STATION_STR[] =    "groundStation";
-static constexpr char RELAY_STR[] =             "relay";
-
 static constexpr char WIFI_CONFIG_STR[] =       "WIFIConfig";
 static constexpr char PYRO_CONFIG_STR[] =       "PyroConfig";
 
