@@ -8,7 +8,7 @@
  *
  */
 struct __attribute__((packed)) PyroChannelConfig {
-    static uint8_t constexpr maxPyroChannels = 8; // who could need more than eight?
+    static uint8_t constexpr maxPyroChannels = 3;
 
     PyroChannelConfig();
     enum ChannelType : uint8_t {
