@@ -26,6 +26,7 @@ struct __attribute__((packed)) Packet
         MINI_STATUS_MESSAGE = 4,
         NAME_MESSAGE = 5,
         RELAY_MESSAGE = 6,
+        LOST_ROCKET_MESSAGE = 7
     };
     enum Status : uint16_t
     {
@@ -164,7 +165,7 @@ struct __attribute__((packed)) GPSPacket
 
 struct __attribute__((packed)) NamePacket {
     uint16_t sender;
-    char name[32+1];
+    char name[ConfigData::NAME_LEN];
 };
 bool convertToJson(const NamePacket& src, JsonVariant dst);
 
@@ -175,6 +176,14 @@ struct __attribute__((packed)) RelayPacket {
     uint32_t received;
 
     uint8_t packet[MAX_MESSAGE_LEN];
+};
+
+struct __attribute__((packed)) LostRocketPacket {
+    char name[ConfigData::NAME_LEN];
+    GPSFix fix;
+    ConfigData::OwnerInformation ownerInfo;
+    uint8_t batteryVoltage;
+    uint32_t lostTime;
 };
 
 #endif //_PACKET_H

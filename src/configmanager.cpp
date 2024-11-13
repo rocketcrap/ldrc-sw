@@ -14,6 +14,7 @@ static constexpr char BEEPER_FREQUENCY_STR[] =  "beeperFrequency";
 static constexpr char ESSID_STR[] =             "ESSID";
 static constexpr char PASSWORD_STR[] =          "password";
 static constexpr char APMODE_STR[] =            "APMode";
+static constexpr char EMAIL_STR[] =             "email";
 
 static constexpr char WIFI_CONFIG_STR[] =       "WIFIConfig";
 static constexpr char PYRO_CONFIG_STR[] =       "PyroConfig";
@@ -36,9 +37,14 @@ bool operator== (const ConfigData::WIFIConfig &a, const ConfigData::WIFIConfig &
 }
 
 bool canConvertFromJson(JsonVariantConst src, const ConfigData::WIFIConfig&) {
-    return src[ESSID_STR].is<const char*>() && 
+    return src[ESSID_STR].is<const char*>() &&
     src[PASSWORD_STR].is<const char*>() &&
     src[APMODE_STR].is<bool>();
+}
+
+bool canConvertFromJSON(JsonVariantConst src, const ConfigData::OwnerInformation&) {
+    return src[EMAIL_STR].is<const char*>() &&
+    src[NAME_STR].is<const char*>();
 }
 
 ConfigData::WIFIConfig::WIFIConfig(const ConfigData::WIFIConfig &other) {
@@ -84,6 +90,22 @@ void convertFromJson(JsonVariantConst src, ConfigData::WIFIConfig &dst) {
     }
 }
 
+bool convertToJson(const ConfigData::OwnerInformation &src, JsonVariant dst) {
+    dst[NAME_STR] = src.name;
+    dst[EMAIL_STR] = src.email;
+    return true;
+}
+
+void convertFromJson(JsonVariantConst src, ConfigData::OwnerInformation &dst) {
+    if (src[NAME_STR].is<const char*>()) {
+        auto name = src[NAME_STR].as<const char*>();
+        strncpy(dst.name, name, sizeof(dst.name));
+    }
+    if (src[EMAIL_STR].is<const char*>()) {
+        auto email = src[EMAIL_STR].as<const char*>();
+        strncpy(dst.email, email, sizeof(dst.email));
+    }
+}
 
 bool convertToJson(const ConfigData &src, JsonVariant dst) {
     dst[NAME_STR] = src.name;
